@@ -13,7 +13,7 @@ fn build_arrow_path<Builder: PathBuilder>(builder: &mut Builder) {
 }
 
 
-pub fn build_tetrion_path<Builder: SvgPathBuilder>(builder: &mut Builder) {
+pub fn build_tetrion_path<B: SvgPathBuilder>(builder: &mut B) {
     builder.move_to(point(0.0, 0.0));
     //builder.begin(point(-1.0, -0.3));
     builder.line_to(point(0.0, 10.0));

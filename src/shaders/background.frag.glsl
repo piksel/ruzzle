@@ -15,8 +15,10 @@ void main() {
     // #005fa4
     float vignette = clamp(0.7 * length(v_position), 0.0, 1.0);
     out_color = mix(
-        vec4(0.0, 0.47, 0.9, 1.0),
-        vec4(0.0, 0.1, 0.64, 1.0),
+        //vec4(0.0, 0.47, 0.9, 1.0),
+        vec4(0.5, 0.5, 0.5, 1.0),
+        //vec4(0.0, 0.1, 0.64, 1.0),
+        vec4(0.0, 0.0, 0.0, 1.0),
         vignette
     );
 
@@ -36,5 +38,13 @@ void main() {
     if (mod(pos.x, 100.0 / grid_scale * v_zoom) <= 2.0 ||
         mod(pos.y, 100.0 / grid_scale * v_zoom) <= 2.0) {
         out_color *= 1.2;
+    }
+
+    if (pos.x > (v_zoom * -5.0) && pos.x <= (v_zoom * 85.0)) {
+        out_color *= 0.1;
+    }
+
+    if (pos.y > (v_zoom * -5.0) && pos.y <= (v_zoom * 135.0)) {
+        out_color *= 0.1;
     }
 }

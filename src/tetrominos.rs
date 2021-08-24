@@ -1,12 +1,59 @@
 use std::ops::Range;
-use std::fmt::{Debug, Formatter};
 
 type TetroShape4 = [ [ bool; 4 ]; 4];
 type TetroShape3 = [ [ bool; 3 ]; 3];
 
+#[derive(Clone)]
 pub enum TetroShape {
     Even(TetroShape4),
     Odd(TetroShape3)
+}
+
+impl TetroShape {
+    pub fn is_solid(&self, x: usize, y: usize) -> bool {
+        match self {
+            TetroShape::Odd(t) if x < 3 && y < 3 => t[y][x],
+            TetroShape::Even(t) if x < 4 && y < 4 => t[y][x],
+            _ => false
+        }
+    }
+
+    pub fn rotated(&self, steps: u8) -> TetroShape {
+        match self {
+            TetroShape::Odd(t) => TetroShape::Odd(rotated3(t.clone(), steps)),
+            TetroShape::Even(t) => TetroShape::Even(rotated4(t.clone(), steps)),
+        }
+    }
+}
+
+fn rotated3(m: TetroShape3, steps: u8) -> TetroShape3 {
+    match steps {
+        0 => m,
+        _ => {
+            let [[a, b, c],
+                 [d, e, f],
+                 [g, h, i]] = m;
+            rotated3([[ g, d, a ],
+                          [ h, e, b ],
+                          [ i, f, c ]],steps - 1)
+        }
+    }
+}
+
+fn rotated4(x: TetroShape4, steps: u8) -> TetroShape4 {
+    match steps {
+        0 => x,
+        _ => {
+            let [[a, b, c, d],
+                 [e, f, g, h],
+                 [i, j, k, l],
+                 [m, n, o, p]] = x;
+            rotated4([[ m, i, e, a ],
+                         [ n, j, f, b ],
+                         [ o, k, g, c ],
+                         [ p, l, h, d ]],steps - 1)
+        }
+    }
 }
 
 pub type Tetromino = usize;
@@ -15,36 +62,6 @@ const TI: Tetromino = 1;
 pub const TL: Tetromino = 7;
 
 pub const RANGE: Range<Tetromino> = TI..TL;
-
-
-// #[repr(usize)]
-// #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-// pub enum Tetromino {
-//     None = 0, I, O, T, S, Z, J, L
-// }
-//
-// impl Tetromino {
-//     pub fn range() -> Range<usize> {
-//         Tetromino::I as usize..Tetromino::L as usize
-//     }
-// }
-//
-// impl Into<usize> for Tetromino {
-//     fn into(self) -> usize {
-//         self as usize
-//     }
-// }
-//
-// impl Tetromino {
-//     pub fn shape(self) -> TetroShape {
-//         ALL[<Tetromino as Into<usize>>::into(self)]
-//     }
-//
-//
-//     pub fn color(self) -> Color {
-//         TETRO_COLORS[<Tetromino as Into<usize>>::into(self)]
-//     }
-// }
 
 pub const NAMES: [&str; 8] = [
     "NONE",
@@ -88,41 +105,17 @@ fn rgba( rgba: u32 ) -> Color {
 }
 
 lazy_static! {
-pub static ref Colors: Vec<Color> = vec!(
-    [  0.0, 0.0, 0.0, 0.0 ],
-    rgba(0x00C0C0ff),
-    rgba(0xFDE01Aff),
-    rgba(0x732982ff),
-    rgba(0x007940ff),
-    rgb(0xD12229),
-    rgba(0x24408Eff),
-    rgba(0xf68a1eff),
-
-);
+    pub static ref Colors: Vec<Color> = vec!(
+        [  0.0, 0.0, 0.0, 0.0 ],
+        rgba(0x00C0C0ff),
+        rgba(0xFDE01Aff),
+        rgba(0x732982ff),
+        rgba(0x007940ff),
+        rgb(0xD12229),
+        rgba(0x24408Eff),
+        rgba(0xf68a1eff),
+    );
 }
-
-pub const TETRO_COLORS: [Color; 8] = [
-    [  0.0, 0.0, 0.0, 0.0 ],
-    //rgb(0xD12229),
-    [ 0xD1 as f32 / 255.0, 0x22 as f32 / 255.0, 0x29 as f32 / 255.0, 1.0 ],
-    // rgba(0xf68a1eff),
-    [ 0xF6 as f32 / 255.0, 0x8A as f32 / 255.0, 0x1E as f32 / 255.0, 1.0 ],
-    [ 0xFD as f32 / 255.0, 0xE0 as f32 / 255.0, 0x1A as f32 / 255.0, 1.0 ],
-    [ 0x00 as f32 / 255.0, 0x79 as f32 / 255.0, 0x40 as f32 / 255.0, 1.0 ],
-    [ 0x00 as f32 / 255.0, 0xC0 as f32 / 255.0, 0xC0 as f32 / 255.0, 1.0 ],
-    [ 0x24 as f32 / 255.0, 0x40 as f32 / 255.0, 0x8E as f32 / 255.0, 1.0 ],
-    [ 0x73 as f32 / 255.0, 0x29 as f32 / 255.0, 0x82 as f32 / 255.0, 1.0 ],
-];
-
-/*
-        [ 255.0 / 0xD1 as f32, 255.0 / 0x22 as f32, 255.0 / 0x29 as f32 ],
-        [ 255.0 / 0xF6 as f32, 255.0 / 0x8A as f32, 255.0 / 0x1E as f32 ],
-        [ 255.0 / 0xFD as f32, 255.0 / 0xE0 as f32, 255.0 / 0x1A as f32 ],
-        [ 255.0 / 0x00 as f32, 255.0 / 0x79 as f32, 255.0 / 0x40 as f32 ],
-        [ 255.0 / 0x00 as f32, 255.0 / 0xC0 as f32, 255.0 / 0xC0 as f32 ],
-        [ 255.0 / 0x24 as f32, 255.0 / 0x40 as f32, 255.0 / 0x8E as f32 ],
-        [ 255.0 / 0x73 as f32, 255.0 / 0x29 as f32, 255.0 / 0x82 as f32 ],
-*/
 
 const XX: bool = true;
 const __: bool = false;
