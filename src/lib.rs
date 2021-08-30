@@ -4,3 +4,4 @@ extern crate lazy_static;
 pub mod paths;
 pub mod tetrominos;
 pub mod engine;
+pub mod config;

@@ -1,6 +1,6 @@
 
 pub mod error;
-mod entity;
+pub(crate) mod entities;
 pub mod gpu;
 
 const DEFAULT_WINDOW_WIDTH: f32 = 1024.0;
@@ -11,7 +11,7 @@ const PLAYFIELD_ROWS: u32 = 16;
 const PLAYFIELD_SIZE: u32 = PLAYFIELD_COLS * PLAYFIELD_ROWS;
 const TETRION_SIZE: f32 = 8.0;
 
-pub use entity::{BluePrint, GeoEntity, Entity, EntityToken};
+pub use entities::{BluePrint, GeoEntity, Entity, EntityToken};
 use lyon::math::{vector, size, point, Vector, Rect};
 use winit::event_loop as ELoop;
 use winit::window::Window;
@@ -19,7 +19,7 @@ use futures::executor::block_on;
 use crate::engine::gpu::{Globals, Primitive, PRIM_BUFFER_LEN};
 use wgpu::{Device, SwapChainFrame};
 use winit::dpi::PhysicalSize;
-use crate::engine::entity::BgEntity;
+use crate::engine::entities::BgEntity;
 use lyon::path::traits::SvgPathBuilder;
 use lyon::path::Path;
 use std::time::{Duration, Instant};
@@ -74,7 +74,7 @@ fn test(s: impl SvgPathBuilder) {
 }
 
 impl Engine {
-    pub fn new(sample_count: u32, tolerance: f32) -> Self {
+    pub fn new(sample_count: u32, tolerance: f32, use_low_power_gpu: bool) -> Self {
         info!("Initializing engine...");
 
         let init_z = 5.0;
@@ -91,9 +91,15 @@ impl Engine {
         // create an surface
         let surface = unsafe { instance.create_surface(&window) };
 
+        let power_preference = if use_low_power_gpu {
+            wgpu::PowerPreference::LowPower
+        } else {
+            wgpu::PowerPreference::HighPerformance
+        };
+
         // create an adapter
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::LowPower,
+            power_preference,
             compatible_surface: Some(&surface),
         }))
             .unwrap();
@@ -121,7 +127,9 @@ impl Engine {
             curr_tet_pos: [0, 0],
             curr_tet_active: false,
             curr_tet_rot: 0,
-            curr_tet_matrix: TetroShape::Odd(tetrominos::TETRO_NONE)
+            curr_tet_matrix: TetroShape::Odd(tetrominos::TETRO_NONE),
+            speed: 1.0,
+            last_down_secs: 0.0,
         };
 
         // create a device and a queue
@@ -179,7 +187,7 @@ impl Engine {
     }
 
     pub fn create_bg_entity(&mut self, dim: f32) -> Result<(), String> {
-        let mut eb = entity::EntityBuilder::new();
+        let mut eb = entities::EntityBuilder::new();
         let rect = Rect::new(
             point(-(dim / 2.0), -(dim / 2.0)),
             size(dim, dim));
@@ -205,7 +213,7 @@ impl Engine {
     // }
 
     pub fn create_geo_entity(&mut self, path: &Path, instances: usize, fill: bool, stroke: bool, scale: f32) -> EngineResult<EntityToken> {
-        let e = entity::EntityBuilder::new()
+        let e = entities::EntityBuilder::new()
             .build_geo(&path, instances, scale, fill, stroke)?;
         self.add_entity(e)
     }
@@ -397,7 +405,9 @@ impl Engine {
                 self.anim_secs = (now - self.anim_start).as_secs_f32();
                 if now >= self.next_report {
                     // println!("{} FPS", frame_count);
-                    self.window.set_title(&*format!("{} FPS", self.frame_count));
+                    self.window.set_title(&*format!("Ruzzle [{:.1}x] {} FPS",
+                                                    self.scene.speed,
+                                                    self.frame_count));
                     self.frame_count = 0;
                     self.next_report = now + Duration::from_secs(1);
                 }
@@ -532,6 +542,15 @@ impl Engine {
                  //println!("COLORS: {:.0}%", cpu_primitives[(stroke_prim_id + idx) as usize].color[0] * 100.0);
 
                 }
+            }
+
+            let last_down_secs = self.scene.last_down_secs;
+            let speed_mod = (2000.0 / self.scene.speed) / 1000.0;
+
+            if (time_secs - last_down_secs) > speed_mod {
+                println!("DOWN! {}", time_secs - last_down_secs);
+                self.scene.last_down_secs = time_secs;
+                self.scene.target_piece_y = 1;
             }
 
             // Update player tile
@@ -757,6 +776,14 @@ impl Engine {
                 VirtualKeyCode::PageUp => {
                     scene.target_zoom *= 1.25;
                 }
+                VirtualKeyCode::Minus| VirtualKeyCode::O => {
+                    scene.speed *= 0.8;
+                }
+                VirtualKeyCode::Plus | VirtualKeyCode::P => {
+                    info!("SPEED: {}", scene.speed);
+                    scene.speed *= 1.25;
+                    info!("SPEED: {}", scene.speed);
+                }
                 VirtualKeyCode::Left => {
                     scene.target_piece_x = -1;
                     //scene.target_scroll.x -= 50.0 / scene.target_zoom;
@@ -783,18 +810,18 @@ impl Engine {
                 VirtualKeyCode::Back | VirtualKeyCode::Z => {
                     scene.target_tet_rot = ((4 + scene.curr_tet_rot) - 1) % 4;
                 }
-                VirtualKeyCode::P => {
-                    scene.show_points = !scene.show_points;
-                }
+                // VirtualKeyCode::P => {
+                //     scene.show_points = !scene.show_points;
+                // }
                 VirtualKeyCode::B => {
                     scene.draw_background = !scene.draw_background;
                 }
                 VirtualKeyCode::A => {
                     scene.target_stroke_width /= 0.8;
                 }
-                VirtualKeyCode::Z => {
-                    scene.target_stroke_width *= 0.8;
-                }
+                // VirtualKeyCode::Z => {
+                //     scene.target_stroke_width *= 0.8;
+                // }
                 _key => {}
             },
             _evt => {
@@ -882,4 +909,6 @@ struct SceneParams {
     curr_tet_active: bool,
     curr_tet_rot: u8,
     curr_tet_matrix: tetrominos::TetroShape,
+    speed: f32,
+    last_down_secs: f32,
 }

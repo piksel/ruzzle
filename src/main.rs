@@ -59,6 +59,8 @@ fn main() {
         .filter_module("ruzzle", log::LevelFilter::Info)
         .init();
 
+    let config = ruzzle::config::load_config();
+
     println!();
     println!(" RUZZLE alpha");
     println!(" https://github.com/piksel/ruzzle");
@@ -68,11 +70,13 @@ fn main() {
     println!("   X/Space     : rotate current tetromino clockwise");
     println!("   Z/Backspace : rotate current tetromino counter clockwise");
     println!("   PgUp/PgDown : zoom in/out (or mouse wheel)");
+    println!("           +/- : increase/decrease level");
     println!();
 
-
-    let mut engine = Engine::new(SAMPLE_COUNT, TOLERANCE);
-
+    let mut engine = Engine::new(
+        config.graphics.sample_count,
+        config.graphics.tolerance,
+        config.graphics.use_low_power_gpu);
 
     let num_instances: usize = PLAYFIELD_SIZE as usize + MAX_CURR_SIZE;
 

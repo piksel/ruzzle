@@ -21,6 +21,8 @@ futures = "0.3.5"
 bytemuck = "1.2.0"
 rand = "0.8.4"
 lazy_static = "1.4.0"
+toml = "0.5.8"
+serde = "1.0.130"
 
 [build-dependencies]
 glsl-to-spirv = "0.1.7"
