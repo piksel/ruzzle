@@ -548,7 +548,6 @@ impl Engine {
             let speed_mod = (2000.0 / self.scene.speed) / 1000.0;
 
             if (time_secs - last_down_secs) > speed_mod {
-                println!("DOWN! {}", time_secs - last_down_secs);
                 self.scene.last_down_secs = time_secs;
                 self.scene.target_piece_y = 1;
             }
@@ -780,9 +779,7 @@ impl Engine {
                     scene.speed *= 0.8;
                 }
                 VirtualKeyCode::Plus | VirtualKeyCode::P => {
-                    info!("SPEED: {}", scene.speed);
                     scene.speed *= 1.25;
-                    info!("SPEED: {}", scene.speed);
                 }
                 VirtualKeyCode::Left => {
                     scene.target_piece_x = -1;
